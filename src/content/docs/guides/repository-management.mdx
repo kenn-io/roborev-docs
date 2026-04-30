@@ -10,11 +10,12 @@ Manage repositories tracked by roborev:
 <Screenshot src="/cli-repo-list.svg" alt="roborev repo list output" maxWidth="480px" />
 
 ```bash
-roborev repo list                    # List all repos with review counts
-roborev repo show my-project         # Show repo details and stats
+roborev repo list                     # List all repos with review counts
+roborev repo show my-project          # Show repo details and stats
 roborev repo rename old-name new-name # Rename display name
-roborev repo delete old-project      # Remove from tracking
-roborev repo merge source target     # Merge reviews into another repo
+roborev repo move my-repo .           # Update root path after a directory move
+roborev repo delete old-project       # Remove from tracking
+roborev repo merge source target      # Merge reviews into another repo
 ```
 
 ## Subcommands
@@ -24,6 +25,7 @@ roborev repo merge source target     # Merge reviews into another repo
 | `repo list` | List all repositories with review counts |
 | `repo show <name>` | Show detailed stats for a repository |
 | `repo rename <old> <new>` | Rename a repository's display name |
+| `repo move <name-or-path> <new-path>` | Update a repository's stored root path on disk |
 | `repo delete <name>` | Remove repository from tracking |
 | `repo merge <src> <dst>` | Move all reviews to another repo |
 
@@ -36,6 +38,27 @@ The rename command is useful when you want a friendlier display name than the di
 ```bash
 roborev repo rename my-project-v2 "My Project"
 ```
+
+### Moving or Renaming a Repository
+
+If you rename or move a tracked repository's directory on disk (e.g. `mv ~/code/old-project ~/code/new-project`), use `repo move` to update the stored root path so existing jobs and reviews stay attached to the same entry:
+
+```bash
+# After 'mv old-project new-project', from inside the new directory:
+roborev repo move old-project .
+
+# Or specify the new path explicitly:
+roborev repo move my-repo /Users/me/code/my-repo
+
+# You can identify the repo by its old (now stale) path too:
+roborev repo move /old/path /new/path
+```
+
+The first argument can be the database name or the current (or stale) repository path. The second argument is the new path; `.` resolves to the current directory's git repository root.
+
+For repos with a git remote, the repository identity stays stable, so the move is transparent to PostgreSQL sync. For local-only repos, the identity changes to `local://<new-path>`. If the target path already belongs to another tracked repo, `repo move` refuses to overwrite it; use `repo merge` to combine the entries instead.
+
+When you `repo rename` a repository whose stored root path no longer exists on disk, roborev now hints you toward `repo move` so reviews do not silently desync from the new directory.
 
 ### Consolidate Duplicates
 
