@@ -5,6 +5,30 @@ description: Release history for roborev
 
 All notable changes to roborev, grouped by minor release.
 
+## 0.53
+<small>2026-04-30</small>
+
+**New features**
+
+- Opt-in automatic design-review router. roborev can now decide per commit whether to dispatch a `--type design` review, using cheap heuristics first (path globs, diff size, file count, commit-subject regexes) and a schema-constrained classifier as a fallback for ambiguous cases. Off by default; turn it on globally with `[auto_design_review] enabled = true` in `~/.roborev/config.toml` or per repo in `.roborev.toml`. The post-commit, `roborev review`, range, and dirty paths and the CI poller all consult the router; design jobs are emitted only when the router says yes, otherwise a skipped row is recorded with the deciding reason and rendered dimmed in the TUI. Classifier behavior is tunable via `classify_agent`, `classify_model`, `classify_reasoning`, `classify_backup_agent`, and `classify_backup_model`. The classifier requires a `SchemaAgent`-capable backend (Claude Code, Codex); other agents are rejected at config-resolve time. See [Auto Design Review](/configuration/#auto-design-review).
+
+**Improvements**
+
+- Daemon HTTP API consolidated under [Huma](https://huma.rocks/). Routes, request and response types, and handlers move to a single Huma-backed registration in `internal/daemon/routes.go`, and the OpenAPI spec served at `/openapi.json` is now available in both 3.1 (default) and 3.0 (downgraded) flavors. The TUI talks to the daemon through a generated OpenAPI client (`internal/daemon_client`) for normal JSON calls; streaming endpoints continue to use plain handlers. This is internal plumbing; existing CLI and TUI behavior is unchanged.
+- The CI poller runs the auto design-review router on the PR head SHA when `design` is not already in the configured review matrix. Heuristic-input failures (missing diff, changed-files, or commit message) degrade to the classifier instead of being silently skipped, so misconfigured repos surface a real outcome.
+- Shell completion for `roborev review --type` suggests `security` and `design`, matching the existing pattern for `--agent` and `--reasoning`. Tab-complete the value directly without typing it out.
+- New `roborev repo move <name-or-path> <new-path>` subcommand updates a tracked repository's stored root path after a directory rename or move on disk, so existing jobs and reviews stay attached to the same repo entry. See [Repository Management](/guides/repository-management/#moving-or-renaming-a-repository).
+
+**Bug fixes**
+
+- `roborev fix` now discovers reviews when run from a detached HEAD. Open-job filtering walks the commit chain back to the first reachable branch tip and matches jobs against the detached commits and review ranges that end on them. `dirty` jobs and unrelated refs remain excluded.
+- The TUI's `auto_filter_repo` startup filter now reconciles renamed and moved repos through their stored display name and identity, so renamed repositories still surface their existing reviews instead of appearing empty.
+- `review --branch`, `analyze --branch`, `refine`, and the post-commit branch-review path now resolve the merge-base against the current branch's `@{upstream}` (e.g. `upstream/main` in fork workflows), falling back to the configured default branch only when no upstream is set. The previous behavior pulled in commits already merged upstream when the local `origin/main` was behind. The `currentBranch == LocalBranchName(base)` guardrail is replaced by `git.IsOnBaseBranch`, which generalizes the `origin/` shortcut, handles non-origin remotes, and stops misclassifying local branches whose names contain slashes (e.g. `feature/foo`).
+- Tab-completing `roborev review --type <TAB>` no longer falls through to filename completion when no value has been typed yet. The completion now returns just `security` and `design` and disables filename fallback.
+- Claude Code's durable scheduled-task files (`.claude/scheduled_tasks.json`, `.claude/scheduled_tasks.lock`) are added to `.gitignore` so the harness's local cron state does not get accidentally tracked.
+
+---
+
 ## 0.52
 <small>2026-04-19</small>
 

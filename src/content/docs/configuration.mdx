@@ -650,6 +650,113 @@ type = "beads"   # Built-in: creates a bd issue automatically
 
 Template variables: `{job_id}`, `{repo}`, `{repo_name}`, `{sha}`, `{agent}`, `{verdict}`, `{findings}`, `{error}`
 
+## Auto Design Review
+
+Off by default. When enabled, roborev decides per commit whether to dispatch a `--type design` review on top of the normal code review. The router uses cheap heuristics first (path globs, diff size, file count, commit-subject regexes) and falls back to a JSON-schema-constrained classifier for ambiguous cases. The post-commit, `roborev review`, range, and dirty paths all consult the router, as does the CI poller when `design` is not already in the configured review matrix. When the router decides not to run, a skipped row is recorded with a short reason and rendered dimmed in the TUI; PR synthesis includes a one-line `Auto-design-review skipped: <reason>` section.
+
+### Enabling
+
+Turn it on globally in `~/.roborev/config.toml`:
+
+```toml
+[auto_design_review]
+enabled = true
+```
+
+A per-repo `[auto_design_review]` block in `.roborev.toml` overrides the global value. The per-repo `enabled` field is tri-state: omitting it inherits the global setting, `enabled = false` explicitly opts a repo out of a globally-enabled default, and `enabled = true` opts a repo in when the global default is off.
+
+```toml
+# .roborev.toml
+[auto_design_review]
+enabled = false   # opt this repo out of a globally-enabled router
+```
+
+### Heuristics
+
+The router checks rules in fixed order: trigger paths, large diff, large file count, trigger message, then skip rules (trivial diff, all-files-skip, skip message). The first match wins; ambiguous commits go to the classifier.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `min_diff_lines` | int | 10 | Diffs below this changed-line count are skipped automatically |
+| `large_diff_lines` | int | 500 | Diffs at or above this line count trigger a design review automatically |
+| `large_file_count` | int | 10 | Commits touching at least this many files trigger automatically |
+| `trigger_paths` | array | see below | Doublestar globs; any changed file matching triggers a design review |
+| `skip_paths` | array | see below | Doublestar globs; if every changed file matches, the commit is skipped |
+| `trigger_message_patterns` | array | see below | Regexes over the commit subject; a match triggers a design review |
+| `skip_message_patterns` | array | see below | Regexes over the commit subject; a match skips the design review |
+| `classifier_timeout_seconds` | int | 60 | Per-classify-job timeout |
+| `classifier_max_prompt_size` | int | 20480 | Cap on classifier prompt size in bytes |
+
+Default `trigger_paths`:
+
+```
+**/migrations/**
+**/schema/**
+**/*.sql
+docs/superpowers/specs/**
+docs/design/**
+docs/plans/**
+**/*-design.md
+**/*-plan.md
+```
+
+Default `skip_paths`:
+
+```
+**/*.md
+**/*_test.go
+**/*.spec.*
+**/testdata/**
+```
+
+Default `trigger_message_patterns`:
+
+```
+\b(refactor|redesign|rewrite|architect|breaking)\b
+```
+
+Default `skip_message_patterns`:
+
+```
+^(docs|test|style|chore)(\(.+\))?:
+```
+
+List fields replace defaults wholesale. Setting an empty list (e.g. `trigger_paths = []`) disables that family of heuristics for the repo. Unset list fields inherit the next layer's value.
+
+Invalid globs and uncompilable regexes fail validation at startup so config typos surface loudly instead of silently suppressing every dispatch.
+
+### Classifier
+
+When heuristics are inconclusive, the router enqueues a `classify` job that runs the configured classifier agent against an embedded JSON schema. The agent returns a yes/no decision plus a short reason, and the router promotes the row to a design-review job or marks it skipped accordingly.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `classify_agent` | string | `claude-code` | Agent for the routing classifier. Must implement structured-output (`SchemaAgent`) capability |
+| `classify_model` | string | agent default | Model for the classifier agent |
+| `classify_reasoning` | string | `fast` | Reasoning level: `fast`, `standard`, `medium`, `thorough`, or `maximum` |
+| `classify_backup_agent` | string | - | Fallback classifier agent on quota exhaustion or failure |
+| `classify_backup_model` | string | - | Fallback classifier model |
+
+Currently `claude-code` (via `--json-schema`) and `codex` (via `exec --output-schema`) implement the structured-output capability. Other agents are rejected at config-resolve time with a list of valid choices.
+
+These keys live at the top level of the config file (not inside `[auto_design_review]`), since they describe the classifier agent the same way `review_agent` and `fix_agent` describe their workflows:
+
+```toml
+# ~/.roborev/config.toml
+classify_agent = "codex"
+classify_model = "gpt-5.2-codex"
+classify_reasoning = "fast"
+
+[auto_design_review]
+enabled = true
+```
+
+### CI integration
+
+When the CI poller picks up a PR, it runs the auto design-review router on the head SHA when `design` is not already in the configured review matrix (`ci.review_types`). If heuristic inputs (diff, changed files, commit message) fail to assemble, the commit degrades to the classifier instead of being silently skipped.
+
+The daemon `/api/status` endpoint exposes a `SkippedJobs` aggregate count, plus an `auto_design` subobject with five per-outcome counters (`triggered`, `skipped_heuristic`, `triggered_classifier`, `skipped_classifier`, `errored`) when the feature is enabled anywhere. The subobject is omitted from the JSON when the feature is disabled across all repos.
+
 ## Reasoning Levels
 
 Reasoning levels control how deeply the AI analyzes code.
