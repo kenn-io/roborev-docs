@@ -103,6 +103,8 @@ The agent reads the review findings, applies changes, commits, and closes the re
 
 Use `--batch` to concatenate multiple reviews into a single prompt so the agent sees all findings at once. This is faster and gives the agent more context to make coordinated fixes across related issues. Reviews are packed into batches respecting the configured max prompt size.
 
+For finer control, use `--batch-size N` to pack up to N reviews per agent invocation. roborev will issue multiple invocations when more than N open reviews remain, with each invocation still bounded by `max_prompt_size`. This is useful when `--batch` would exceed the prompt budget but you still want coordinated multi-finding fixes per call. Pair with `--resume` to reuse the agent's session ID across calls within the run, so each invocation builds on prior context instead of starting fresh.
+
 ## Applying Fixes from Analysis
 
 There are two ways to apply fixes from analysis results.
@@ -289,6 +291,8 @@ max_prompt_size = 204800
 | `--quiet` | Suppress agent output |
 | `--open` | Fix all open reviews on the current branch (default when no job IDs given) |
 | `--batch` | Concatenate multiple reviews into a single agent prompt instead of fixing one at a time |
+| `--batch-size <n>` | Pack up to N reviews into each agent invocation, bounded by `max_prompt_size`. Multiple invocations are issued when more than N reviews are open. Mutually exclusive with `--batch` and `--list`. |
+| `--resume` | Reuse the agent's session ID across calls within a single fix run so chained fixes build on prior context |
 | `--branch <name>` | Filter by branch (requires `--open` or `--batch`) |
 | `--all-branches` | Include jobs from all branches (requires `--open` or `--batch`) |
 | `--newest-first` | Process jobs newest first (requires `--open` or `--batch`) |

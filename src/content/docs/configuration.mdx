@@ -325,7 +325,7 @@ default_max_prompt_size = 300000   # 300 KB global default
 max_prompt_size = 500000           # 500 KB for this repo only
 ```
 
-This limit applies to all review commands (`review`, `compact`, `ci review`) and all agents. When a diff exceeds the budget, roborev truncates it at a UTF-8 boundary and includes fallback instructions that guide the agent to read the diff locally using git commands. Optional context (prior reviews, guidelines) is trimmed first to preserve as much diff as possible.
+This limit applies to all review commands (`review`, `compact`, `ci review`) and all agents. When a diff exceeds the budget, roborev writes the full diff to an external snapshot file in a per-snapshot temp directory and includes fallback instructions in the prompt pointing the agent at the snapshot path. Codex receives the snapshot directory via `--add-dir`. Optional context (prior reviews, guidelines) is trimmed first to preserve as much inline diff as possible. Final prompt size is checked before submission, and context-window failures fail or fail over rather than retrying the same oversized prompt.
 
 ### Post-Commit Review Mode
 

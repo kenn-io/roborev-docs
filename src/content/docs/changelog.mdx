@@ -5,6 +5,43 @@ description: Release history for roborev
 
 All notable changes to roborev, grouped by minor release.
 
+## 0.54
+<small>2026-05-07</small>
+
+**New features**
+
+- `--batch-size N` flag on `roborev fix` to pack up to N reviews into a single agent invocation, still bounded by the configured `max_prompt_size`. This sits between the default one-fix-per-prompt mode and `--batch` (everything in one prompt): you get coordinated multi-finding fixes per call without exceeding the prompt budget. Mutually exclusive with `--batch` and `--list`. See [Fixing Reviews](/commands/#fixing-reviews).
+- `--resume` flag on `roborev fix` to reuse the agent's session ID across calls within a single fix run, so chained fixes build on prior context instead of starting fresh each call. Defaults to off.
+
+**Improvements**
+
+- Large diff prompts are kept in external snapshot files instead of being expanded back into agent prompts. roborev now applies an agent-agnostic final prompt-size gate before submission and treats context-window failures as non-retryable failover candidates rather than retrying the same oversized prompt. Snapshots are written to per-snapshot temp directories that are readable by all agents.
+- Review prompts now instruct agents to separate multiple findings with `---` on its own line so findings render as distinct entries instead of running together. Applies across the default, dirty, range, and security templates as well as the Claude Code, Codex, and Gemini variants.
+- The README header logo uses a dark-background variant on GitHub dark mode (via a `<picture>` element with `prefers-color-scheme`), so the dark-text logo no longer becomes unreadable on dark backgrounds.
+
+**Bug fixes**
+
+- The foreground `roborev fix` loop now classifies agent errors and aborts cleanly when it detects a quota or session limit, instead of demoting these failures to per-job warnings during discovery mode. A new `internal/agent` rate-limit classifier (`LimitKind`, `LimitClassification`, `ParseResetDuration`, `ParseResetTime`) is shared between the daemon worker and the CLI fix loop, so cooldown behavior is consistent across both paths and unmatched agent errors are logged with a truncated preview instead of being silent.
+- Codex large-diff snapshots are written to per-snapshot subdirectories, and Codex receives the snapshot directory via `--add-dir` instead of full `/tmp` access. This restores Codex's ability to read external diff snapshots while avoiding exposure of unrelated `/tmp` contents. Snapshot-shaped paths in prompts are ignored unless they resolve to existing files inside a private roborev snapshot directory.
+
+---
+
+## 0.53.1
+<small>2026-05-04</small>
+
+**Improvements**
+
+- ACP session validation: the first ACP session update is validated against the agent's configured session ID before being stored. Mismatches are logged but no longer return errors, avoiding connection breaks during normal operation.
+- ACP model resolution: `ModelForSelectedAgent` falls back to the model configured in the `[acp]` section when no workflow-specific model is set, giving consistent model selection across review, analyze, fix, refine, and daemon paths.
+- Clearer error messages for invalid ACP configuration and model settings, with improved permission handling during session setup.
+
+**Bug fixes**
+
+- `review --branch`, `analyze --branch`, and `refine` correctly auto-detect the branch base when the upstream is configured as a raw URL (e.g. `https://example.com/fork.git`) rather than a registered remote name. URL-shaped values previously produced invalid refs like `refs/remotes/https://.../main` that failed to resolve, breaking branch-base detection for affected repos. roborev now detects URL-shaped remote values via prefix and `://` checks, after first confirming the value is not a registered remote name, and falls through to the next detection step.
+- Per-branch `branch.<name>.base` overrides are now consulted by review, refine, and analyze flows. The override was already documented as a per-branch base override but was being skipped in favor of upstream-tracking detection.
+
+---
+
 ## 0.53
 <small>2026-04-30</small>
 

@@ -198,6 +198,8 @@ roborev fix 123                    # Fix a specific review by job ID
 roborev fix 42 43 44               # Fix multiple reviews sequentially
 roborev fix --batch                # Batch all open into one agent prompt
 roborev fix --batch 42 43 44       # Batch specific jobs into one prompt
+roborev fix --batch-size 5         # Pack up to 5 reviews per agent invocation
+roborev fix --resume               # Reuse agent session across calls
 roborev fix --branch main          # Fix all open on a specific branch
 roborev fix --all-branches         # Fix all open across all branches
 roborev fix --list                 # List open reviews without fixing
@@ -213,6 +215,8 @@ roborev fix --min-severity medium  # Skip low-severity findings
 | `--branch <name>` | Filter by branch (default: current branch) |
 | `--all-branches` | Include open jobs from all branches |
 | `--batch` | Concatenate multiple reviews into a single agent prompt instead of fixing one at a time |
+| `--batch-size <n>` | Pack up to N reviews into each agent invocation, bounded by `max_prompt_size`. Multiple invocations are issued when more than N reviews are open. Mutually exclusive with `--batch` and `--list`. |
+| `--resume` | Reuse the agent's session ID across calls within a single fix run so chained fixes build on prior context |
 | `--list` | List open reviews with details (job ID, ref, branch, agent, verdict) without running any fixes |
 | `--newest-first` | Process jobs newest first instead of oldest first |
 | `--min-severity <level>` | Only fix findings at or above this severity (`low`/`medium`/`high`/`critical`) |
