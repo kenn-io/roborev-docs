@@ -402,7 +402,7 @@ roborev analyze complexity --per-file src/*.go      # One job per file
 roborev analyze test-fixtures internal/*_test.go   # Find test helper opportunities
 roborev analyze refactor --branch                  # Analyze changed files on branch
 roborev analyze refactor --branch=feature-xyz      # Analyze a specific branch
-roborev analyze --mode security ./...              # Security-focused analysis
+roborev analyze security ./...                     # Security-focused analysis
 roborev analyze --list                             # List analysis types
 ```
 
@@ -411,7 +411,6 @@ roborev analyze --list                             # List analysis types
 | `--agent <name>` | Use specific agent |
 | `-m, --model <model>` | Model to use |
 | `--reasoning <level>` | Set reasoning depth |
-| `--mode <mode>` | Analysis mode (`security`) to apply a focused system prompt on top of the analyze type |
 | `--wait` | Wait for completion and display result |
 | `--quiet` | Suppress output |
 | `--branch [name]` | Analyze files changed on branch (optionally specify branch name) |
@@ -501,7 +500,7 @@ roborev uninstall-hook           # Remove hook
 
 | Flag | Description |
 |------|-------------|
-| `--json` | Emit daemon and queue status as JSON. Includes the active daemon `endpoint` (TCP address or Unix socket path) alongside queue counters and version fields |
+| `--json` | Emit daemon and queue status as JSON. Includes the active daemon endpoint as `network`, `address`, and `port` fields alongside queue counters and version fields |
 | `--force` | Overwrite an existing post-commit hook with a fresh one |
 
 :::tip[Broken post-commit hook?]

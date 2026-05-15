@@ -10,14 +10,14 @@ All notable changes to roborev, grouped by minor release.
 
 **New features**
 
-- `--mode security` flag on `roborev analyze` runs an analysis with a security-focused system prompt, so you can scope an analyze type to vulnerabilities and risk areas without writing a custom run prompt. See [Code Analysis](/commands/#code-analysis).
-- `roborev status --json` now reports the daemon endpoint (e.g. the TCP address or Unix socket path) alongside the existing daemon and queue fields, so scripts and integrations can discover the active endpoint without parsing the human-readable output.
+- `security` analyze type runs `roborev analyze security <files>` with a security-focused prompt covering authn/authz, trust boundaries, injection, file/secret handling, cryptography, and dependency risks. Jobs are tagged `review_type = security` so `security_agent` and `security_model` config (and the per-reasoning-level variants) apply automatically. See [Code Analysis](/commands/#code-analysis).
+- `roborev status --json` emits structured daemon and queue status, including the active daemon endpoint as `network`, `address`, and `port` fields so scripts and integrations can discover the listening transport without reading runtime files.
 
 **Improvements**
 
-- Review agents may now read repository files when verifying claims they would otherwise have had to infer from the diff alone. This reduces false-positive findings where the diff looks suspicious but the surrounding code resolves the concern, and it keeps reviews scoped to the working tree (no network access, no writes).
-- The TUI queue hides `auto-design-router` classifier jobs by default to reduce noise from per-commit routing decisions. The skipped/triggered counters on the daemon status endpoint are unchanged, and dimmed skipped rows for design reviews continue to appear in the queue.
-- Codex review skill context is disabled by default so review prompts are not preceded by skill-loading instructions. Reviews still run through the configured Codex agent; only the auxiliary skill context is suppressed.
+- Review templates for Claude Code, Codex, and Gemini drop the "diff and static analysis only" framing and explicitly permit reading other repo files to verify claims. Agents are still prohibited from building, running tests, or executing code; the change reduces false-negative findings (e.g. "this package doesn't exist") on PRs that reference code outside the diff. Non-templated agents (Copilot, OpenCode, Cursor, Kiro, Kilo, Droid, Pi) use the fallback prompt and are unchanged.
+- The TUI queue hides auto-design-router classifier jobs (`job_type = classify`) and skipped design rows (`status = skipped`, scoped to `source = auto_design`) by default to reduce per-commit routing noise. A new `show_classify_jobs` global config (with nullable per-repo override) and an `s` TUI hotkey toggle visibility; the queue footer and `?` help screen reflect the current state. Pressing `l` on a hidden classifier or skipped row shows the classifier verdict and `skip_reason` above the streamed log. The daemon status endpoint's skipped/triggered counters are unchanged. See [Auto Design Review](/configuration/#auto-design-review).
+- Codex review jobs default to `skills.include_instructions=false` and `--ignore-user-config`, so review prompts run without skill instructions or user-level Codex config. Two global toggles under `[agent.codex]` control this (`disable_review_skills`, `ignore_review_user_config`); both default to `true`. Fix jobs are not affected. See [Codex Review Options](/configuration/#codex-review-options).
 
 **Bug fixes**
 
