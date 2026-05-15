@@ -654,6 +654,8 @@ Template variables: `{job_id}`, `{repo}`, `{repo_name}`, `{sha}`, `{agent}`, `{v
 
 Off by default. When enabled, roborev decides per commit whether to dispatch a `--type design` review on top of the normal code review. The router uses cheap heuristics first (path globs, diff size, file count, commit-subject regexes) and falls back to a JSON-schema-constrained classifier for ambiguous cases. The post-commit, `roborev review`, range, and dirty paths all consult the router, as does the CI poller when `design` is not already in the configured review matrix. When the router decides not to run, a skipped row is recorded with a short reason and rendered dimmed in the TUI; PR synthesis includes a one-line `Auto-design-review skipped: <reason>` section.
 
+The auto-design-router's own classifier jobs are hidden from the TUI queue by default so per-commit routing decisions do not crowd out review rows. The decisions are still recorded and counted on the daemon status endpoint; only the per-commit classifier rows are filtered from the default queue view.
+
 ### Enabling
 
 Turn it on globally in `~/.roborev/config.toml`:

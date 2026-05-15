@@ -5,6 +5,26 @@ description: Release history for roborev
 
 All notable changes to roborev, grouped by minor release.
 
+## 0.55
+<small>2026-05-15</small>
+
+**New features**
+
+- `--mode security` flag on `roborev analyze` runs an analysis with a security-focused system prompt, so you can scope an analyze type to vulnerabilities and risk areas without writing a custom run prompt. See [Code Analysis](/commands/#code-analysis).
+- `roborev status --json` now reports the daemon endpoint (e.g. the TCP address or Unix socket path) alongside the existing daemon and queue fields, so scripts and integrations can discover the active endpoint without parsing the human-readable output.
+
+**Improvements**
+
+- Review agents may now read repository files when verifying claims they would otherwise have had to infer from the diff alone. This reduces false-positive findings where the diff looks suspicious but the surrounding code resolves the concern, and it keeps reviews scoped to the working tree (no network access, no writes).
+- The TUI queue hides `auto-design-router` classifier jobs by default to reduce noise from per-commit routing decisions. The skipped/triggered counters on the daemon status endpoint are unchanged, and dimmed skipped rows for design reviews continue to appear in the queue.
+- Codex review skill context is disabled by default so review prompts are not preceded by skill-loading instructions. Reviews still run through the configured Codex agent; only the auxiliary skill context is suppressed.
+
+**Bug fixes**
+
+- Gemini-based reviews can now read external diff snapshots. The Gemini agent receives the per-snapshot temp directory in its allowed-paths list (matching the Codex `--add-dir` behavior introduced in 0.54), restoring access to the expected context for large diffs.
+
+---
+
 ## 0.54
 <small>2026-05-07</small>
 
