@@ -624,6 +624,24 @@ tasks_enabled = true   # Enable background tasks in the TUI
 
 When enabled, the TUI exposes the `F` (fix) and `T` (tasks) shortcuts for launching fix jobs and managing patches. See [Background Tasks](/advanced/background-tasks/) for the full reference.
 
+### Codex Review Options
+
+The `[agent.codex]` section controls Codex-specific behavior for review jobs. Both options default to `true` so Codex reviews start from a clean state without skill instructions or user-level Codex config. Fix jobs are not affected.
+
+```toml
+# ~/.roborev/config.toml
+[agent.codex]
+disable_review_skills = true       # Suppress Codex skill instructions on review jobs
+ignore_review_user_config = true   # Pass --ignore-user-config to Codex review jobs
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `disable_review_skills` | bool | true | Run Codex review jobs with `skills.include_instructions=false` so model-visible skill instructions are stripped from the prompt |
+| `ignore_review_user_config` | bool | true | Pass `--ignore-user-config` to Codex review jobs so user-level Codex config is not loaded |
+
+Set either to `false` to restore the prior behavior if you rely on Codex skill instructions or user-level Codex config during reviews.
+
 ## Hooks
 
 Run shell commands when reviews complete or fail. See the [Review Hooks guide](/guides/hooks) for full details.
@@ -653,6 +671,8 @@ Template variables: `{job_id}`, `{repo}`, `{repo_name}`, `{sha}`, `{agent}`, `{v
 ## Auto Design Review
 
 Off by default. When enabled, roborev decides per commit whether to dispatch a `--type design` review on top of the normal code review. The router uses cheap heuristics first (path globs, diff size, file count, commit-subject regexes) and falls back to a JSON-schema-constrained classifier for ambiguous cases. The post-commit, `roborev review`, range, and dirty paths all consult the router, as does the CI poller when `design` is not already in the configured review matrix. When the router decides not to run, a skipped row is recorded with a short reason and rendered dimmed in the TUI; PR synthesis includes a one-line `Auto-design-review skipped: <reason>` section.
+
+By default, the TUI queue hides the auto-design-router's classifier jobs (`job_type = classify`) and skipped design rows (`status = skipped`, scoped to `source = auto_design`) so per-commit routing decisions do not crowd out review rows. Decisions are still recorded and counted on the daemon status endpoint. Press `s` in the TUI to toggle visibility for the current session, or set `show_classify_jobs = true` in `~/.roborev/config.toml` to make them visible globally; per-repo `.roborev.toml` can override with a nullable `show_classify_jobs` field (omit to inherit). When viewing a hidden classifier or skipped row, press `l` to see the classifier verdict and `skip_reason` rendered above the (typically empty) log.
 
 ### Enabling
 
