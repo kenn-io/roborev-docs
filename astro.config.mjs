@@ -36,7 +36,7 @@ export default defineConfig({
         },
       },
       social: {
-        github: 'https://github.com/roborev-dev/roborev',
+        github: 'https://github.com/kenn-io/roborev',
         discord: 'https://discord.gg/fDnmxB8Wkq',
       },
       head: [
