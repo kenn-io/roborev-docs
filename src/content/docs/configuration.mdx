@@ -149,6 +149,7 @@ All public APIs must have documentation comments.
 | `design_backup_agent` | string | Fallback agent for design reviews |
 | `review_guidelines` | string | Project-specific guidelines for the reviewer |
 | `max_prompt_size` | int | Maximum prompt size in bytes for this repo (default: 200000) |
+| `snapshot_dir` | string | Repo-relative directory for oversized diff snapshots (default: `.roborev`). See [Prompt Size Budget](#prompt-size-budget) |
 
 ### Review Guidelines
 
@@ -325,7 +326,16 @@ default_max_prompt_size = 300000   # 300 KB global default
 max_prompt_size = 500000           # 500 KB for this repo only
 ```
 
-This limit applies to all review commands (`review`, `compact`, `ci review`) and all agents. When a diff exceeds the budget, roborev writes the full diff to an external snapshot file in a per-snapshot temp directory and includes fallback instructions in the prompt pointing the agent at the snapshot path. Codex receives the snapshot directory via `--add-dir`. Optional context (prior reviews, guidelines) is trimmed first to preserve as much inline diff as possible. Final prompt size is checked before submission, and context-window failures fail or fail over rather than retrying the same oversized prompt.
+This limit applies to all review commands (`review`, `compact`, `ci review`) and all agents. When a diff exceeds the budget, roborev writes the full diff to an external snapshot file in a per-snapshot directory and includes fallback instructions in the prompt pointing the agent at the snapshot path. Codex receives the snapshot directory via `--add-dir`. Optional context (prior reviews, guidelines) is trimmed first to preserve as much inline diff as possible. Final prompt size is checked before submission, and context-window failures fail or fail over rather than retrying the same oversized prompt.
+
+By default, snapshots are written to `.roborev/` under the repo root so the agent sandbox does not need broader filesystem access. Override the location with `snapshot_dir` in `.roborev.toml`:
+
+```toml
+# .roborev.toml
+snapshot_dir = ".cache/roborev"
+```
+
+`snapshot_dir` must be a relative path under the repo root, must not be inside `.git`, and must not contain control characters. `roborev init` ensures the configured directory is ignored in `.gitignore`; snapshot creation also writes a local `.git/info/exclude` fallback for existing checkouts whose ignore setup is stale.
 
 ### Post-Commit Review Mode
 

@@ -11,7 +11,7 @@ roborev supports multiple AI coding agents and auto-detects which ones are insta
 |-------|-------------|---------|
 | Codex | `codex` | `npm install -g @openai/codex` |
 | Claude Code | `claude` | `npm install -g @anthropic-ai/claude-code` |
-| Gemini | `gemini` | `npm install -g @google/gemini-cli` |
+| Gemini | `agy` or `gemini` | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` (preferred) or `npm install -g @google/gemini-cli` |
 | Copilot | `copilot` | `npm install -g @github/copilot` |
 | Cursor | `agent` | See [cursor.com/cli](https://cursor.com/cli) |
 | OpenCode | `opencode` | `npm install -g opencode-ai` |
@@ -137,6 +137,27 @@ roborev does not forward `anthropic_api_key` (or `ANTHROPIC_API_KEY`) to proxy e
 As of 0.52, the `claude-code` agent always strips the following variables from the child process environment: `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, `ANTHROPIC_DEFAULT_HAIKU_MODEL`, and `CLAUDE_CODE_SUBAGENT_MODEL`. If you previously routed Claude Code by exporting these in your shell, switch to the `<model>@<base_url>` spec, or configure `anthropic_api_key` in `~/.roborev/config.toml` for native (non-proxy) mode. roborev re-injects the configured key rather than inheriting from the operator's shell.
 :::
 
+## Gemini: Antigravity vs Legacy CLI
+
+The Gemini agent works with either the Antigravity `agy` CLI or the legacy `gemini` CLI. Google has deprecated the legacy CLI, so roborev prefers `agy` when both are installed and falls back to `gemini` otherwise.
+
+```bash
+# Preferred: Antigravity CLI
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+
+# Legacy CLI (still supported)
+npm install -g @google/gemini-cli
+```
+
+Antigravity runs in `--print` mode with the prompt piped over stdin. Review jobs get `--sandbox`; agentic jobs get `--dangerously-skip-permissions`.
+
+Antigravity does not currently accept a `--model` flag, so:
+
+- If both `agy` and `gemini` are installed, any `--model` override automatically reroutes to `gemini`.
+- If only `agy` is installed, an explicit `--model` returns an error so the override is not silently ignored.
+
+If you rely on model selection and want to keep using `gemini` exclusively, install only the legacy CLI or shadow `agy` on your `PATH` with a wrapper that exec's `gemini`.
+
 ## Agentic Support
 
 Different agents have different levels of support for agentic mode (file edits and commands):
@@ -145,7 +166,8 @@ Different agents have different levels of support for agentic mode (file edits a
 |-------|-----------------|
 | Codex | Full (uses `--dangerously-bypass-approvals-and-sandbox`) |
 | Claude Code | Full (uses `--dangerously-skip-permissions`) |
-| Gemini | Full (uses `--yolo` and `--allowed-tools`) |
+| Gemini (Antigravity) | Full (uses `--dangerously-skip-permissions`) |
+| Gemini (legacy) | Full (uses `--yolo` and `--allowed-tools`) |
 | Copilot | Limited (requires manual approval for actions) |
 | Cursor | Full (uses `--yolo` flag) |
 | OpenCode | Full (auto-approves in non-interactive mode) |
