@@ -5,6 +5,30 @@ description: Release history for roborev
 
 All notable changes to roborev, grouped by minor release.
 
+## 0.56
+<small>2026-05-24</small>
+
+**New features**
+
+- Per-job cost estimate in the TUI queue. A new default-visible "Cost" column shows the agentsview-provided cost estimate alongside the existing token counts; the review detail header appends `· ~$0.42` to the usage summary. Cost data requires agentsview 0.30.0 or newer (which adds `agentsview session usage <id> --format json` with `cost_usd`/`has_cost` fields); on older versions the column stays blank and token counts are unaffected. Run `roborev backfill-tokens` to refresh existing jobs once agentsview is upgraded. See [Token Usage](/commands/#token-usage).
+- Agent plugin manifests for Claude Code and Codex. The repository now ships `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json`, and `.codex-plugin/plugin.json` pointing at the same Claude and Codex skill trees that `roborev skills install` uses. This lets users install roborev skills through each agent's plugin distribution channel in addition to the existing CLI installer.
+- Repo-local oversized-diff snapshots. The default snapshot root moves from OS temp space to `.roborev/` under the repo, set per-repo via a new `snapshot_dir` field in `.roborev.toml`. `roborev init` ensures the configured directory is ignored in `.gitignore`; snapshot creation also writes a local `.git/info/exclude` fallback for repos whose ignore setup is stale. `snapshot_dir` must be a relative path under the repo root and may not be inside `.git`. See [Prompt Size Budget](/configuration/#prompt-size-budget).
+
+**Improvements**
+
+- Prefer the Antigravity `agy` CLI for the Gemini agent. Google has deprecated the legacy `gemini` CLI; roborev now picks `agy` first when both are installed and falls back to `gemini` otherwise. Antigravity runs in `--print` mode with prompts piped over stdin and maps review/agentic permissions to `--sandbox` and `--dangerously-skip-permissions`. Antigravity does not yet accept a `--model` flag, so model overrides automatically reroute to `gemini` if it is installed; when only `agy` is available, an explicit `--model` returns a clear error instead of being silently ignored. See [Supported Agents](/agents/#supported-agents).
+- Design review prompt gains an "Internal contradictions" check as the new top-priority item. This flags places where two parts of a spec, PRD, or task list conflict even when each part is individually clear, so downstream agents do not resolve the conflict differently and produce inconsistent implementations. The original five-bullet rubric (completeness, feasibility, task scoping, missing considerations, clarity) is preserved as items 2 through 6.
+- CLI errors no longer dump the full usage block on runtime failures. The usage block now prints for invocation errors only (unknown flags, mutually exclusive flags, bad enum values, unknown subcommands, invalid `--server`); runtime errors (daemon down, invalid git ref, network failure) print just `Error: ...`. Caller-controlled exits (`review --wait` with a Fail verdict, `wait` with multiple jobs) remain silent with the correct exit code. `--quiet` continues to silence the verdict output but still surfaces runtime error messages, matching CLI convention.
+- The `/roborev-fix` skills for Claude Code and Codex now require closing each addressed review before handling any post-fix auto-reviews, and add explicit per-job `closed=true` audit guidance so the skill cannot leave reviews open after applying fixes.
+
+**Bug fixes**
+
+- Retry backoff is now enforced per job rather than per worker. A new `retry_not_before` column on `review_jobs` (added by a SQLite migration and the postgres v13 schema) stamps the earliest claim time when a job is retried, and `ClaimJob` filters on it across the entire worker pool. The previous in-worker `time.Sleep` only paused the worker that failed; with `--max-workers > 1`, other workers would claim the retry immediately and inherit the same broken state. Failover clears the column so a fresh agent is not held by the prior gate. Default backoff is 2s.
+- The CI batch poller no longer unclaims batches that were finalized by a racing event path. Stale-claim recovery now checks the batch's terminal state before reverting it. Permanent GitHub access errors on moved or deleted repositories finalize the batch instead of retrying forever.
+- `roborev init` works in worktrees backed by `git clone --bare`. The git helper now detects linked worktrees whose common git directory is bare and resolves them to the checkout root, so Middleman-style bare-backed worktrees can be registered. Behavior for normal linked worktrees and submodule worktrees is unchanged.
+
+---
+
 ## 0.55
 <small>2026-05-15</small>
 

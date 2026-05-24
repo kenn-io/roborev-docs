@@ -119,6 +119,8 @@ The queue displays two separate status columns:
 - **Status**: The job's lifecycle state: Queued (yellow), Running (blue), Done (default), Error (orange), Canceled (gray).
 - **P/F**: The review verdict, shown once the review completes: Pass (green) or Fail (red). This reflects whether the code review found issues, not whether the job itself errored. A job can finish successfully (Status = Done) with a Fail verdict if the reviewer flagged problems.
 
+The default-visible "Cost" column shows the model-pricing estimate from [agentsview](/commands/#token-usage) for completed jobs. The cell stays blank for unpriced models, for jobs whose usage has not been fetched yet, and on agentsview versions older than 0.30.0.
+
 ## Mouse Interactions
 
 Mouse support is enabled by default. Click to select rows, double-click to open a review, and use the scroll wheel to navigate lists.

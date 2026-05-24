@@ -323,6 +323,8 @@ If no failing reviews match the time window and branch filter, the command exits
 
 Token usage is tracked automatically for completed jobs when `agentsview` is installed. Usage appears in the TUI review header and `roborev show` output (e.g. `118.0k ctx · 28.8k out`).
 
+When agentsview 0.30.0 or newer is installed, the usage summary also includes a model-pricing cost estimate (e.g. `118.0k ctx · 28.8k out · ~$0.42`), and the TUI queue displays a default-visible "Cost" column with the per-job estimate. Older agentsview versions still record token counts; the cost column stays blank for unpriced models and for jobs whose usage has not yet been fetched. The tilde marks the value as a model-pricing estimate rather than a billed amount.
+
 To backfill token data for older jobs:
 
 ```bash
